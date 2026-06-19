@@ -1,0 +1,42 @@
+# LimitRange — sets defaults and boundaries for INDIVIDUAL containers in 'dev'.
+# Works alongside ResourceQuota:
+#   ResourceQuota = namespace-wide cap
+#   LimitRange    = per-container defaults and max/min
+#
+# The 'default' and 'defaultRequest' here solve the ResourceQuota problem:
+# because a quota is active, pods without explicit limits are rejected.
+# LimitRange auto-injects limits so developers don't have to specify them every time.
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: dev-limits
+  namespace: dev
+spec:
+  limits:
+    - type: Container         # applies to every container in every pod
+      # Applied automatically when a pod doesn't specify limits/requests:
+      default:
+        cpu: "500m"           # 0.5 CPU cores  (1000m = 1 core)
+        memory: "256Mi"
+      defaultRequest:
+        cpu: "100m"           # 0.1 CPU cores
+        memory: "64Mi"
+      # Hard boundaries — API server rejects pods outside this range:
+      max:
+        cpu: "2"              # no single container can request more than 2 cores
+        memory: "1Gi"
+      min:
+        cpu: "50m"            # no container can request less than 0.05 cores
+        memory: "32Mi"
+
+    - type: Pod               # aggregate limit across ALL containers in a pod
+      max:
+        cpu: "4"
+        memory: "2Gi"
+
+    - type: PersistentVolumeClaim
+      max:
+        storage: "10Gi"       # no PVC can request more than 10 GiB in this namespace
+      min:
+        storage: "1Gi"

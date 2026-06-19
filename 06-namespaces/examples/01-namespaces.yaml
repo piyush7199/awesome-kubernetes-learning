@@ -1,0 +1,28 @@
+# Create multiple namespaces declaratively — recommended over kubectl create namespace
+# so your environment layout is version-controlled.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+  labels:
+    env: dev          # labels on namespaces are used by NetworkPolicies and RBAC
+    team: platform
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: staging
+  labels:
+    env: staging
+    team: platform
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    env: production
+    team: platform

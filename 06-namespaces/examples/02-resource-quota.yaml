@@ -1,0 +1,28 @@
+# ResourceQuota — limits total resource consumption for the entire 'dev' namespace.
+# Once applied, every pod in 'dev' MUST declare resource requests and limits,
+# otherwise the API server rejects the pod.
+# Pair with a LimitRange (example 03) to auto-inject defaults for pods that forget.
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: dev-quota
+  namespace: dev       # applies to the 'dev' namespace only
+spec:
+  hard:
+    # ── Compute resources (aggregate across ALL pods in namespace) ──────────
+    requests.cpu: "4"        # total CPU requested by all pods: 4 cores
+    requests.memory: 8Gi     # total memory requested: 8 GiB
+    limits.cpu: "8"          # total CPU limit: 8 cores
+    limits.memory: 16Gi      # total memory limit: 16 GiB
+
+    # ── Object count limits ─────────────────────────────────────────────────
+    pods: "20"               # max 20 pods running at any time
+    services: "10"           # max 10 services
+    secrets: "40"            # max 40 secrets
+    configmaps: "40"         # max 40 configmaps
+    persistentvolumeclaims: "5"   # max 5 PVCs
+
+    # ── Service type restrictions ───────────────────────────────────────────
+    services.loadbalancers: "0"   # disallow LoadBalancer services in dev (costs money)
+    services.nodeports: "5"       # max 5 NodePort services
