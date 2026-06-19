@@ -4,6 +4,31 @@
 
 ---
 
+## Table of Contents
+
+- [The Problem: Config Baked Into the Image](#the-problem-config-baked-into-the-image)
+- [The Analogy: Employee Handbook vs Safe](#the-analogy-employee-handbook-vs-safe)
+- [Core Vocabulary](#core-vocabulary)
+- [ConfigMaps](#configmaps)
+- [Secrets](#secrets)
+- [Two Ways to Consume ConfigMaps and Secrets in Pods](#two-ways-to-consume-configmaps-and-secrets-in-pods)
+  - [Method 1: Environment Variables](#method-1-environment-variables)
+  - [Method 2: Volume Mounts (Files)](#method-2-volume-mounts-files)
+- [Env Var vs Volume Mount — Which to Use?](#env-var-vs-volume-mount--which-to-use)
+- [Projecting Specific Keys to Specific File Paths](#projecting-specific-keys-to-specific-file-paths)
+- [Immutable ConfigMaps and Secrets](#immutable-configmaps-and-secrets)
+- [Real-World Secret Management (Beyond Basic Secrets)](#real-world-secret-management-beyond-basic-secrets)
+- [How Kubernetes Stores Secrets Internally](#how-kubernetes-stores-secrets-internally)
+- [Essential Commands](#essential-commands)
+- [Common Mistakes & Gotchas](#common-mistakes--gotchas)
+- [Common Questions & Doubts](#common-questions--doubts)
+- [Interview Questions](#interview-questions)
+- [Summary](#summary)
+- [Exercises](#exercises)
+- [Navigation](#navigation)
+
+---
+
 ## The Problem: Config Baked Into the Image
 
 Imagine your app needs a database host, a port number, a feature flag, and a password.
