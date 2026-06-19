@@ -1,0 +1,50 @@
+# Consuming ConfigMap and Secret as environment variables.
+# Use this when your app reads config from OS env vars.
+# IMPORTANT: env vars are frozen at container start — pod must restart to pick up changes.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-with-env
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      # Keep the container alive so we can exec in and inspect env vars
+      command: ["sh", "-c", "env && sleep 3600"]
+
+      env:
+        # --- From ConfigMap (individual keys) ---
+        - name: APP_ENV           # env var name inside the container
+          valueFrom:
+            configMapKeyRef:
+              name: app-config    # ConfigMap name
+              key: APP_ENV        # key in the ConfigMap
+
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: LOG_LEVEL
+
+        # --- From Secret (individual keys) ---
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials  # Secret name
+              key: password         # key in the Secret
+
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+
+      # --- Inject ALL keys from ConfigMap/Secret at once ---
+      # Each key becomes an env var named exactly as the key is named.
+      # Useful when you have many keys and don't want to list each one.
+      envFrom:
+        - configMapRef:
+            name: app-config      # APP_ENV, LOG_LEVEL, MAX_CONNECTIONS, DB_HOST, DB_PORT all injected
+        # - secretRef:
+        #     name: db-credentials  # uncomment to also inject all Secret keys

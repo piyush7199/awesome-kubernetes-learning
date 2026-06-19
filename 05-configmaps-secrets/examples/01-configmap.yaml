@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  # Simple key-value pairs — each becomes an env var or a file
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+  MAX_CONNECTIONS: "100"
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+
+  # Multi-line value — an entire file stored as one key.
+  # The | character preserves newlines (YAML block scalar).
+  # When mounted as a volume, this key becomes a file named "app.properties"
+  app.properties: |
+    server.port=8080
+    cache.ttl=300
+    feature.dark-mode=true
+    feature.new-checkout=false
