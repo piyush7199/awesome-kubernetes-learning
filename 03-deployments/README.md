@@ -4,6 +4,25 @@
 
 ---
 
+## Table of Contents
+
+- [The Problem: Pods Are Mortal](#the-problem-pods-are-mortal)
+- [The Analogy: A Restaurant Franchise Manager](#the-analogy-a-restaurant-franchise-manager)
+- [Core Vocabulary](#core-vocabulary)
+- [How It Works](#how-it-works)
+- [YAML Walkthrough](#yaml-walkthrough)
+- [Controlling the Rolling Update](#controlling-the-rolling-update)
+- [Essential Deployment Commands](#essential-deployment-commands)
+- [Revision History and Rollback in Detail](#revision-history-and-rollback-in-detail)
+- [Common Mistakes & Gotchas](#common-mistakes--gotchas)
+- [Common Questions & Doubts](#common-questions--doubts)
+- [Interview Questions](#interview-questions)
+- [Summary](#summary)
+- [Exercises](#exercises)
+- [Navigation](#navigation)
+
+---
+
 ## The Problem: Pods Are Mortal
 
 In topic 02 you learned that pods are ephemeral — when a node dies, any pods on it are **gone forever** unless something recreates them.
