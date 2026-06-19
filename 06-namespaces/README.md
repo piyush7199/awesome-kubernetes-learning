@@ -4,6 +4,31 @@
 
 ---
 
+## Table of Contents
+
+- [The Problem: One Cluster, Many Teams, Zero Order](#the-problem-one-cluster-many-teams-zero-order)
+- [The Analogy: Floors in an Office Building](#the-analogy-floors-in-an-office-building)
+- [The Four Default Namespaces](#the-four-default-namespaces)
+- [Core Vocabulary](#core-vocabulary)
+- [Namespace-Scoped vs Cluster-Scoped Resources](#namespace-scoped-vs-cluster-scoped-resources)
+- [How Namespaces Work: Name Isolation](#how-namespaces-work-name-isolation)
+- [Creating and Using Namespaces](#creating-and-using-namespaces)
+- [Deploying to a Namespace](#deploying-to-a-namespace)
+- [ResourceQuota — Capping What a Namespace Can Consume](#resourcequota--capping-what-a-namespace-can-consume)
+- [LimitRange — Defaults and Bounds for Individual Pods](#limitrange--defaults-and-bounds-for-individual-pods)
+- [Cross-Namespace Communication](#cross-namespace-communication)
+- [The Truth About Namespace Isolation](#the-truth-about-namespace-isolation)
+- [Naming Conventions Used in Practice](#naming-conventions-used-in-practice)
+- [Essential Commands](#essential-commands)
+- [Common Mistakes & Gotchas](#common-mistakes--gotchas)
+- [Common Questions & Doubts](#common-questions--doubts)
+- [Interview Questions](#interview-questions)
+- [Summary](#summary)
+- [Exercises](#exercises)
+- [Navigation](#navigation)
+
+---
+
 ## The Problem: One Cluster, Many Teams, Zero Order
 
 Imagine your company runs a single Kubernetes cluster shared by three teams:
