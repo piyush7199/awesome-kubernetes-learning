@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-v1      # include version in name — since immutable, you'll create new versions
+immutable: true            # cannot be modified after creation
+                           # to update: create app-config-v2 and update Deployment to reference it
+data:
+  RELEASE: "2024-q1"
+  FEATURE_NEW_UI: "true"
+  API_VERSION: "v3"

@@ -1,0 +1,51 @@
+# Consuming ConfigMap and Secret as volume-mounted files.
+# Use this for:
+#   - Config files your app reads from disk (nginx.conf, application.properties)
+#   - TLS certificates and private keys
+#   - Any config you want to update WITHOUT restarting the pod
+#
+# Files update automatically within ~60 seconds when the ConfigMap/Secret changes.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-with-files
+spec:
+  volumes:
+    # Each volume references one ConfigMap or Secret
+    - name: config-volume
+      configMap:
+        name: app-config
+        # Optionally select specific keys and rename them as files:
+        items:
+          - key: app.properties    # only mount this key
+            path: application.properties  # name the file this inside the container
+
+    - name: secret-volume
+      secret:
+        secretName: db-credentials
+        defaultMode: 0400   # octal: owner read-only — important for private keys!
+                            # Without this, files are 0644 (world-readable)
+
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sh", "-c", "cat /etc/config/application.properties && cat /etc/secrets/password && sleep 3600"]
+
+      volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config    # files appear here
+          readOnly: true
+
+        - name: secret-volume
+          mountPath: /etc/secrets   # files appear here
+          readOnly: true
+
+  # Result inside the container:
+  # /etc/config/
+  #   application.properties   ← contents of app-config key "app.properties"
+  #
+  # /etc/secrets/
+  #   username                 ← contents: "admin"
+  #   password                 ← contents: "Sup3r$ecret!Passw0rd"
+  #   connection-string        ← contents: full connection string
