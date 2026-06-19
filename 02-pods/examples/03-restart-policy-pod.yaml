@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: one-shot-job
+  labels:
+    app: batch
+spec:
+  # OnFailure: only restart if exit code is non-zero
+  # Use Never for tasks where you want to inspect the result regardless of outcome
+  restartPolicy: OnFailure
+
+  containers:
+    - name: worker
+      image: busybox:1.36
+      # This container prints a message and exits with code 0 (success)
+      # With restartPolicy: OnFailure it will NOT be restarted after a clean exit
+      command: ["sh", "-c", "echo 'Job done!'; sleep 2; exit 0"]

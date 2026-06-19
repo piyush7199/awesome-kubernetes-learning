@@ -1,0 +1,14 @@
+apiVersion: v1       # Pod is a core resource — it uses the 'v1' API group
+kind: Pod
+metadata:
+  name: my-nginx     # unique name for this pod in the namespace
+  labels:
+    app: nginx        # labels are arbitrary key-value pairs used for selection
+    env: learning     # you can have as many labels as you want
+spec:
+  containers:
+    - name: nginx             # name of this container within the pod
+      image: nginx:1.25       # image:tag — always pin a tag, never use 'latest' in production
+      ports:
+        - containerPort: 80   # documents the port; does NOT actually expose it externally
+                              # to reach it from outside you need a Service (topic 04)

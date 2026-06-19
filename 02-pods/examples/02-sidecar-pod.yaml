@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-with-logger
+  labels:
+    app: web
+spec:
+  containers:
+    # --- Main container: runs the web server ---
+    - name: web-app
+      image: nginx:1.25
+      ports:
+        - containerPort: 80
+      volumeMounts:
+        - name: shared-logs        # mount the shared volume at this path
+          mountPath: /var/log/nginx # nginx writes access.log + error.log here
+
+    # --- Sidecar container: reads and prints the logs ---
+    # In a real setup this would ship logs to Datadog, Splunk, etc.
+    - name: log-shipper
+      image: busybox:1.36
+      # 'tail -f' keeps running and streams new log lines as they appear
+      command: ["sh", "-c", "tail -f /var/log/nginx/access.log"]
+      volumeMounts:
+        - name: shared-logs        # same volume name — same shared directory
+          mountPath: /var/log/nginx
+
+  volumes:
+    # emptyDir: created when pod starts, deleted when pod is removed
+    # both containers above share this same directory
+    - name: shared-logs
+      emptyDir: {}
