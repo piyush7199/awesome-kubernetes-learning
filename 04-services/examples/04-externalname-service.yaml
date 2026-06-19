@@ -1,0 +1,19 @@
+# ExternalName Service — DNS alias to an external hostname
+# No ClusterIP, no proxy, no Endpoints object.
+# Just a CNAME record: database.default.svc.cluster.local → the externalName below.
+#
+# Use case: your app calls `database:5432` (stable K8s name).
+# If you migrate to a different RDS instance, update externalName here — app code unchanged.
+#
+# NOTE: ExternalName does NOT support port mapping or TLS. It is purely a DNS alias.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: database           # pods call this name: database:5432
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: my-db.abc123.us-east-1.rds.amazonaws.com   # the real external hostname
+  # No selector — ExternalName services don't route to pods
+  # No ports block needed — the CNAME resolves directly

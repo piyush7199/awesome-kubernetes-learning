@@ -1,0 +1,42 @@
+# ClusterIP Service — internal-only stable endpoint
+# Use this whenever two things inside the cluster need to talk to each other.
+#
+# Traffic flow:
+#   frontend pod  ──►  backend-service:80  ──►  backend pod:8080
+
+---
+# First, a Deployment to have something to route to
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend      # <-- Service selector must match this
+    spec:
+      containers:
+        - name: backend
+          image: nginx:1.25   # pretending nginx is our backend app
+          ports:
+            - containerPort: 80
+
+---
+# The ClusterIP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  type: ClusterIP     # default; you could omit this line entirely
+  selector:
+    app: backend      # routes to all pods with label app=backend that are Ready
+  ports:
+    - port: 80        # Service listens on this port (what callers use)
+      targetPort: 80  # container listens on this port (where traffic is delivered)
+      protocol: TCP
