@@ -4,6 +4,32 @@
 
 ---
 
+## Table of Contents
+
+- [The Problem: Pod IPs Are Temporary](#the-problem-pod-ips-are-temporary)
+- [The Analogy: A Company Receptionist](#the-analogy-a-company-receptionist)
+- [Core Vocabulary](#core-vocabulary)
+- [How a Service Works Under the Hood](#how-a-service-works-under-the-hood)
+- [The Four Service Types](#the-four-service-types)
+  - [Type 1: ClusterIP (Default)](#type-1-clusterip-default)
+  - [Type 2: NodePort](#type-2-nodeport)
+  - [Type 3: LoadBalancer](#type-3-loadbalancer)
+  - [Type 4: ExternalName](#type-4-externalname)
+- [Service Discovery: DNS Inside the Cluster](#service-discovery-dns-inside-the-cluster)
+- [The Selector: How a Service Finds Its Pods](#the-selector-how-a-service-finds-its-pods)
+- [Headless Services](#headless-services)
+- [Port Naming: port vs targetPort vs nodePort](#port-naming-port-vs-targetport-vs-nodeport)
+- [Service vs Ingress — When to Use Which](#service-vs-ingress--when-to-use-which)
+- [Essential Service Commands](#essential-service-commands)
+- [Common Mistakes & Gotchas](#common-mistakes--gotchas)
+- [Common Questions & Doubts](#common-questions--doubts)
+- [Interview Questions](#interview-questions)
+- [Summary](#summary)
+- [Exercises](#exercises)
+- [Navigation](#navigation)
+
+---
+
 ## The Problem: Pod IPs Are Temporary
 
 From topic 02 you know that every pod gets a unique IP address. Sounds useful — can't your frontend just call your backend's pod IP directly?
