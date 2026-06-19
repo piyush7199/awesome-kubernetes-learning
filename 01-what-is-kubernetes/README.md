@@ -4,6 +4,23 @@
 
 ---
 
+## Table of Contents
+
+- [The Problem: Running Apps in Production is Hard](#the-problem-running-apps-in-production-is-hard)
+- [The Analogy: Kubernetes is Like an Airline Operations Center](#the-analogy-kubernetes-is-like-an-airline-operations-center)
+- [Core Vocabulary (Just 5 Terms for Now)](#core-vocabulary-just-5-terms-for-now)
+- [How Kubernetes Works (Bird's Eye View)](#how-kubernetes-works-birds-eye-view)
+- [Kubernetes Architecture](#kubernetes-architecture)
+- [What Kubernetes is NOT](#what-kubernetes-is-not)
+- [Quick Hands-On: Look at a Real Cluster](#quick-hands-on-look-at-a-real-cluster)
+- [Common Questions & Doubts](#common-questions--doubts)
+- [Interview Questions](#interview-questions)
+- [Summary](#summary)
+- [Exercises](#exercises)
+- [Next Topic](#next-topic)
+
+---
+
 ## The Problem: Running Apps in Production is Hard
 
 Imagine you built a web app and you want to run it. Simple, right?
@@ -134,6 +151,59 @@ Your containers start running on worker nodes
 Controller constantly watches: "Is reality == desired state?"
 If a pod crashes → controller creates a new one automatically
 ```
+
+---
+
+## Kubernetes Architecture
+
+Kubernetes follows a master-worker (control plane/worker node) architecture. Here’s how the main components fit together:
+
+### 1. Control Plane (The Brain)
+Responsible for managing the cluster, making global decisions, and detecting/responding to cluster events.
+
+- **kube-apiserver**: The front door for all commands (kubectl, UI, etc.). All communication goes through here.
+- **etcd**: The cluster’s database. Stores all configuration and state.
+- **kube-scheduler**: Assigns new pods to nodes based on resource availability and policies.
+- **kube-controller-manager**: Runs controllers that ensure the cluster matches the desired state (e.g., restarts crashed pods).
+
+### 2. Worker Nodes (The Muscle)
+Run your application containers.
+
+- **kubelet**: Agent on each node. Talks to the control plane, starts/stops containers as instructed.
+- **kube-proxy**: Handles networking, routes traffic to the right pod.
+- **Container Runtime**: (e.g., containerd) Actually runs your containers.
+
+### Diagram
+
+```
+                        +----------------------+
+                        |   Control Plane      |
+                        |----------------------|
+                        |  kube-apiserver      |
+                        |  etcd                |
+                        |  scheduler           |
+                        |  controller-manager  |
+                        +----------+-----------+
+                                   |
+                +------------------+------------------+
+                |                                     |
+        +-------v-------+                     +-------v-------+
+        |   Worker Node |                     |   Worker Node |
+        |---------------|                     |---------------|
+        |  kubelet      |                     |  kubelet      |
+        |  kube-proxy   |                     |  kube-proxy   |
+        |  containerd   |                     |  containerd   |
+        +-------+-------+                     +-------+-------+
+                |                                     |
+        +-------v-------+                     +-------v-------+
+        |   Pod(s)      |                     |   Pod(s)      |
+        +---------------+                     +---------------+
+```
+
+**How it works:**  
+- You interact with the control plane (via `kubectl` or UI).
+- The control plane stores your desired state in etcd, schedules pods, and manages the cluster.
+- Worker nodes run the actual application containers (inside pods), reporting status back to the control plane.
 
 ---
 
