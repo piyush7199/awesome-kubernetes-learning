@@ -4,6 +4,26 @@
 
 ---
 
+## Table of Contents
+
+- [The Problem: Containers Need a Home](#the-problem-containers-need-a-home)
+- [The Analogy: A Pod is an Apartment](#the-analogy-a-pod-is-an-apartment)
+- [Core Vocabulary](#core-vocabulary)
+- [Pod Lifecycle: The Phases](#pod-lifecycle-the-phases)
+- [How a Pod Works](#how-a-pod-works)
+- [Your First Pod — YAML Walkthrough](#your-first-pod--yaml-walkthrough)
+- [Essential Pod Commands](#essential-pod-commands)
+- [Multi-Container Pods (The Sidecar Pattern)](#multi-container-pods-the-sidecar-pattern)
+- [Restart Policies](#restart-policies)
+- [Common Mistakes & Gotchas](#common-mistakes--gotchas)
+- [Common Questions & Doubts](#common-questions--doubts)
+- [Interview Questions](#interview-questions)
+- [Summary](#summary)
+- [Exercises](#exercises)
+- [Navigation](#navigation)
+
+---
+
 ## The Problem: Containers Need a Home
 
 In Docker, you run a container directly:

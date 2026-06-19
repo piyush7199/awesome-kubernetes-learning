@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app-recreate
+  annotations:
+    kubernetes.io/change-cause: "Recreate strategy example — use only when versions cannot coexist"
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: web-app-recreate
+
+  strategy:
+    type: Recreate    # ALL old pods are terminated before ANY new pods start
+                      # causes downtime — use only for apps that cannot run mixed versions
+
+  template:
+    metadata:
+      labels:
+        app: web-app-recreate
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
