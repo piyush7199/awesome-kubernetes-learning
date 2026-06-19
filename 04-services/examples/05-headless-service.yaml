@@ -1,0 +1,19 @@
+# Headless Service — no ClusterIP, DNS returns individual pod IPs directly
+# Use when you need to reach specific pods, not a random one.
+# Required by StatefulSets (topic 13) for stable pod DNS names.
+#
+# DNS behaviour with headless:
+#   nslookup db-headless  →  returns ALL matching pod IPs (one A record per pod)
+#   nslookup db-headless  →  (normal service) returns only the ClusterIP
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-headless
+spec:
+  clusterIP: None     # this is what makes it headless
+  selector:
+    app: database
+  ports:
+    - port: 5432
+      targetPort: 5432

@@ -1,0 +1,42 @@
+# NodePort Service — external access without a cloud load balancer
+# Opens port 30080 on EVERY node in the cluster.
+# Traffic flow:
+#   Browser ──► <any-node-IP>:30080 ──► ClusterIP:80 ──► pod:8080
+#
+# On Minikube: run  `minikube service frontend-nodeport --url`  to get the access URL.
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: nginx:1.25
+          ports:
+            - containerPort: 8080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-nodeport
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - port: 80          # ClusterIP port — used for internal pod-to-pod calls
+      targetPort: 8080  # actual container port
+      nodePort: 30080   # external port on every node (must be 30000-32767)
+                        # omit nodePort to let Kubernetes pick a free one
