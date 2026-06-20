@@ -1,0 +1,42 @@
+# Static provisioning — admin creates PV manually, developer claims it with a PVC.
+# In production prefer dynamic provisioning (example 03). Use static when you
+# need to adopt an existing disk or use a specific pre-provisioned volume.
+#
+# To apply: kubectl apply -f 02-static-pv-pvc.yaml
+
+---
+# Step 1: Admin creates the PersistentVolume (represents actual storage)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-static-demo
+  labels:
+    type: local     # labels can be used by PVC selector to match specific PVs
+spec:
+  capacity:
+    storage: 1Gi                  # how much storage this PV holds
+  accessModes:
+    - ReadWriteOnce               # one node can mount read-write at a time
+  reclaimPolicy: Retain           # keep data when PVC is deleted — admin must clean up
+  storageClassName: ""            # empty = manually managed, not by a StorageClass
+  hostPath:
+    path: /tmp/k8-pv-demo         # on Minikube, this is inside the Minikube VM
+    type: DirectoryOrCreate       # create the directory if it doesn't exist
+
+---
+# Step 2: Developer creates the PersistentVolumeClaim (request for storage)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-static-demo
+spec:
+  accessModes:
+    - ReadWriteOnce               # must match (or be subset of) the PV's accessModes
+  resources:
+    requests:
+      storage: 1Gi               # must be <= PV capacity for binding to happen
+  storageClassName: ""           # must match PV's storageClassName — both empty here
+  # Optional: select a specific PV by label
+  # selector:
+  #   matchLabels:
+  #     type: local

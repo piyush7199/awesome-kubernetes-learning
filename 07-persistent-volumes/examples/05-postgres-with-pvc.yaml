@@ -1,0 +1,80 @@
+# A realistic example: PostgreSQL with persistent storage.
+# This is how databases should be deployed in Kubernetes.
+# Data in /var/lib/postgresql/data survives pod restarts and rescheduling.
+#
+# NOTE: For production databases, use a StatefulSet (topic 13), not a bare Deployment.
+# This Deployment example is for learning the PVC mechanics.
+#
+# To apply: kubectl apply -f 05-postgres-with-pvc.yaml
+
+---
+# The PVC — 2Gi for our demo database
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce     # postgres writes from one pod — RWO is correct here
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: standard
+
+---
+# The Deployment — references the PVC
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1           # IMPORTANT: only 1 replica for RWO storage
+                        # Two replicas would fight over the same RWO volume
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: mydb
+            - name: POSTGRES_USER
+              value: admin
+            - name: POSTGRES_PASSWORD
+              value: "devpassword"   # use a Secret in production (topic 05)
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data   # where postgres stores all its data
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-data-pvc
+
+---
+# A Service so other pods can reach postgres
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

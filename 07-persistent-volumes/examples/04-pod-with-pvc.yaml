@@ -1,0 +1,32 @@
+# A pod that writes data to a PersistentVolumeClaim.
+# After the pod is deleted and recreated, the data persists.
+# Requires: pvc-dynamic-demo to exist (apply 03-dynamic-pvc.yaml first).
+#
+# To apply: kubectl apply -f 04-pod-with-pvc.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: data-writer
+spec:
+  containers:
+    - name: writer
+      image: busybox:1.36
+      # Write a timestamped file every 10 seconds, keep the pod alive
+      command:
+        - sh
+        - -c
+        - |
+          echo "Pod started at $(date)" >> /data/history.log
+          while true; do
+            echo "$(date): still running" >> /data/history.log
+            sleep 10
+          done
+      volumeMounts:
+        - name: persistent-storage
+          mountPath: /data       # the PVC is accessible here inside the container
+
+  volumes:
+    - name: persistent-storage
+      persistentVolumeClaim:
+        claimName: pvc-dynamic-demo   # reference the PVC by name
