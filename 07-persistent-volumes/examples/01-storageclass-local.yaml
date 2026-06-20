@@ -1,0 +1,44 @@
+# StorageClass for local development (Minikube / kind)
+# Minikube ships with a built-in 'standard' StorageClass backed by hostPath.
+# This example shows what a custom StorageClass looks like.
+#
+# For reference — cloud StorageClass examples are commented at the bottom.
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-dev
+  annotations:
+    # Mark this as the default StorageClass — PVCs with no storageClassName use this
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: k8s.io/minikube-hostpath    # Minikube's built-in provisioner
+reclaimPolicy: Delete                    # delete the hostPath directory when PVC is deleted
+volumeBindingMode: Immediate             # create PV immediately when PVC is submitted
+
+---
+# ── Cloud StorageClass examples (for reference, not applied here) ──────────
+
+# AWS EBS (gp3 SSD):
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: aws-ebs-gp3
+# provisioner: ebs.csi.aws.com
+# reclaimPolicy: Delete
+# volumeBindingMode: WaitForFirstConsumer   # zone-aware — wait for pod scheduling
+# allowVolumeExpansion: true
+# parameters:
+#   type: gp3
+#   encrypted: "true"
+
+# GCP Persistent Disk (SSD):
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: gcp-pd-ssd
+# provisioner: pd.csi.storage.gke.io
+# reclaimPolicy: Delete
+# volumeBindingMode: WaitForFirstConsumer
+# allowVolumeExpansion: true
+# parameters:
+#   type: pd-ssd

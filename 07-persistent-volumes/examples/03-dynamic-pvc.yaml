@@ -1,0 +1,19 @@
+# Dynamic provisioning — just create a PVC, the StorageClass creates the PV.
+# This is the standard approach in production.
+# Minikube's built-in 'standard' StorageClass handles this automatically.
+#
+# To apply: kubectl apply -f 03-dynamic-pvc.yaml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-dynamic-demo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+  storageClassName: standard      # Minikube's default StorageClass
+                                  # In production: your cloud StorageClass name
+                                  # Omit storageClassName to use cluster default
