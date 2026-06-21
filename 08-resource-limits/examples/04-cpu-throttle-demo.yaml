@@ -1,0 +1,25 @@
+# CPU throttling demonstration — tight CPU limit with a CPU-intensive workload.
+# The container will be throttled but NOT killed.
+# Compare response time with and without the CPU limit.
+#
+# To observe throttling:
+#   kubectl exec -it cpu-throttle-demo -- sh
+#   time dd if=/dev/zero of=/dev/null bs=1M count=1000
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cpu-throttle-demo
+spec:
+  containers:
+    - name: cpu-hog
+      image: busybox:1.36
+      # A simple infinite loop — maxes out CPU
+      command: ["sh", "-c", "while true; do echo 'running'; done"]
+      resources:
+        requests:
+          cpu: "50m"
+          memory: "32Mi"
+        limits:
+          cpu: "100m"     # hard cap at 10% of a core — loop will be heavily throttled
+          memory: "64Mi"

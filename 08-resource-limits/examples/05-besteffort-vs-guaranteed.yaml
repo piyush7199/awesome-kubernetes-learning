@@ -1,0 +1,39 @@
+# Two pods side by side — BestEffort vs Guaranteed QoS.
+# Under memory pressure, the BestEffort pod is evicted first.
+#
+# Apply both and compare their QoS class:
+#   kubectl get pod besteffort-pod -o jsonpath='{.status.qosClass}'
+#   kubectl get pod guaranteed-pod2 -o jsonpath='{.status.qosClass}'
+
+---
+# BestEffort pod — NO resources block at all
+# QoS class: BestEffort — first evicted under memory pressure
+apiVersion: v1
+kind: Pod
+metadata:
+  name: besteffort-pod
+spec:
+  containers:
+    - name: app
+      image: nginx:1.25
+      # No resources block → BestEffort QoS
+      # Can use any CPU/memory on the node — but first to die when pressure hits
+
+---
+# Guaranteed pod — requests == limits
+# QoS class: Guaranteed — last evicted under memory pressure
+apiVersion: v1
+kind: Pod
+metadata:
+  name: guaranteed-pod2
+spec:
+  containers:
+    - name: app
+      image: nginx:1.25
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "64Mi"
+        limits:
+          cpu: "100m"     # equal to request
+          memory: "64Mi"  # equal to request
