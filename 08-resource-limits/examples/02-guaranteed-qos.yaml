@@ -1,0 +1,23 @@
+# Guaranteed QoS — requests == limits for all containers.
+# Use for: databases, stateful services, latency-sensitive workloads.
+# Effect: pod is last to be evicted when node runs low on memory.
+#
+# QoS class: Guaranteed
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: guaranteed-pod
+spec:
+  containers:
+    - name: app
+      image: nginx:1.25
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"       # exactly equal to request
+          memory: "256Mi"   # exactly equal to request
+          # Both containers in a multi-container pod must have requests==limits
+          # for the pod to be Guaranteed

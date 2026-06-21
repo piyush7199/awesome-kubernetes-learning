@@ -1,0 +1,33 @@
+# Standard resource requests and limits for a web application.
+# This is the pattern you should follow for most Deployments.
+#
+# QoS class: Burstable (requests < limits)
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              # Scheduler reserves this on a node — pod only scheduled if node has this free
+              cpu: "100m"       # 0.1 core — baseline usage
+              memory: "128Mi"   # 128 mebibytes — baseline footprint
+            limits:
+              # Runtime cap — container throttled (CPU) or killed (memory) if exceeded
+              cpu: "500m"       # 0.5 core — can burst to handle traffic spikes
+              memory: "256Mi"   # 256Mi — 100% headroom over request for GC/spikes
