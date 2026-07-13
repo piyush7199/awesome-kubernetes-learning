@@ -1,0 +1,38 @@
+# Liveness probe failure demo.
+# The container deletes /tmp/healthy after 30 seconds.
+# The liveness exec probe checks for that file.
+# After 30s + failureThreshold * periodSeconds, the container is restarted.
+#
+# Watch with: kubectl get pod liveness-failure-demo -w
+# Then:       kubectl describe pod liveness-failure-demo
+# Look for:   Events → Unhealthy → Killing → Restarting
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-failure-demo
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      command:
+        - sh
+        - -c
+        - |
+          # Create healthy file
+          touch /tmp/healthy
+          echo "Created /tmp/healthy — liveness will pass"
+          # After 30 seconds, remove it → liveness probe will fail
+          sleep 30
+          echo "Removing /tmp/healthy — liveness will fail in ~30s"
+          rm /tmp/healthy
+          # Keep the process alive (it won't exit on its own)
+          sleep 3600
+      livenessProbe:
+        exec:
+          command:
+            - cat
+            - /tmp/healthy    # fails when file is removed
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        failureThreshold: 3   # fails after 3 * 10s = 30s after file removed

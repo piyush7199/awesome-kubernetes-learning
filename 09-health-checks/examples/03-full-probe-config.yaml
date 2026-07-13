@@ -1,0 +1,82 @@
+# Production-style deployment with all three probes properly configured.
+# This is the recommended pattern for a web service.
+#
+# Three separate health endpoints:
+#   /healthz  → liveness  (is the app process alive?)
+#   /readyz   → readiness (is the app ready to serve traffic?)
+#   Both served by the same nginx for this demo.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-service
+  template:
+    metadata:
+      labels:
+        app: web-service
+    spec:
+      containers:
+        - name: api
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "300m"
+              memory: "128Mi"
+
+          # ── Startup Probe ─────────────────────────────────────────────────
+          # Gives the app up to failureThreshold * periodSeconds to start.
+          # Liveness and readiness are DISABLED while this is running.
+          # Once it passes, startup probe is disabled and the others begin.
+          startupProbe:
+            httpGet:
+              path: /         # nginx serves 200 immediately — low delay for demo
+              port: 80
+            failureThreshold: 30   # 30 * 10s = 5 minutes max startup time
+            periodSeconds: 10
+
+          # ── Liveness Probe ────────────────────────────────────────────────
+          # Only checks if the app itself is alive — NOT dependencies.
+          # Failure → container restart.
+          livenessProbe:
+            httpGet:
+              path: /         # in production: a /healthz that checks only app internals
+              port: 80
+            initialDelaySeconds: 0    # startup probe already handled the delay
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # ── Readiness Probe ───────────────────────────────────────────────
+          # Can check dependencies (DB, cache, upstream APIs).
+          # Failure → removed from Service Endpoints (no restart).
+          readinessProbe:
+            httpGet:
+              path: /         # in production: a /readyz that checks DB, cache, etc.
+              port: 80
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+            successThreshold: 1
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+spec:
+  selector:
+    app: web-service
+  ports:
+    - port: 80
+      targetPort: 80
