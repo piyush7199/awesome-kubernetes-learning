@@ -1,0 +1,56 @@
+# ClusterRole + ClusterRoleBinding: read-only access to everything cluster-wide.
+# Useful for: monitoring tools, auditors, on-call engineers who only need visibility.
+#
+# Apply:
+#   kubectl apply -f 02-clusterrole-readonly.yaml
+#
+# Test:
+#   kubectl auth can-i list pods --all-namespaces --as=bob           # yes
+#   kubectl auth can-i get nodes --as=bob                            # yes
+#   kubectl auth can-i create deployments --as=bob                   # no
+#   kubectl auth can-i delete namespaces --as=bob                    # no
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-read-only
+rules:
+  - apiGroups: ["*"]           # all API groups
+    resources: ["*"]           # all resources
+    verbs: ["get", "list", "watch"]   # only read verbs
+
+  # Note: this ALSO grants read on secrets in all namespaces.
+  # If you want read-only WITHOUT secrets access, use the built-in
+  # "view" ClusterRole instead — it excludes secrets.
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bob-cluster-read-only
+subjects:
+  - kind: User
+    name: bob
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-read-only
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Alternative: use the built-in "view" ClusterRole (no secret access)
+# Scoped to just the "production" namespace via RoleBinding (not ClusterRoleBinding)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: carol-view-production
+  namespace: production
+subjects:
+  - kind: User
+    name: carol
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole    # using a built-in ClusterRole
+  name: view           # read-only, excludes secrets — scoped to production by this RoleBinding
+  apiGroup: rbac.authorization.k8s.io

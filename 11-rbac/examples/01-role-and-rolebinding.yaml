@@ -1,0 +1,64 @@
+# Role + RoleBinding: give a developer read/write access in one namespace.
+# They can manage deployments and pods but cannot delete anything or read secrets.
+#
+# Apply:
+#   kubectl apply -f 01-role-and-rolebinding.yaml
+#
+# Test:
+#   kubectl auth can-i get pods -n development --as=alice       # yes
+#   kubectl auth can-i delete pods -n development --as=alice    # no
+#   kubectl auth can-i get secrets -n development --as=alice    # no
+#   kubectl auth can-i get pods -n production --as=alice        # no (wrong namespace)
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: development
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer
+  namespace: development     # only valid inside this namespace
+rules:
+  # Core API group: pods, services, configmaps, endpoints
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "configmaps", "endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+  # Apps group: deployments and replicasets
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+  # Allow exec into pods for debugging (pods/exec is a sub-resource)
+  - apiGroups: [""]
+    resources: ["pods/exec", "pods/portforward"]
+    verbs: ["create"]        # "create" is the verb for exec and portforward
+
+  # Ingress management (networking group)
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+  # Notably absent:
+  #   - delete (cannot delete anything)
+  #   - secrets (cannot read secrets)
+  #   - rolebindings/roles (cannot escalate own privileges)
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: alice-is-developer
+  namespace: development     # binding is also namespace-scoped
+subjects:
+  - kind: User               # a human user (authenticated externally)
+    name: alice              # exact username from their auth credential
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer            # must match the Role above
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,78 @@
+# Namespace admin pattern: give a team full control over their namespace,
+# but zero access to other namespaces or cluster-level resources.
+# Uses the built-in "admin" ClusterRole scoped via RoleBinding.
+#
+# Apply:
+#   kubectl apply -f 04-namespace-admin.yaml
+#
+# Test:
+#   kubectl auth can-i delete pods -n team-alpha --as=team-alpha-lead          # yes
+#   kubectl auth can-i create rolebindings -n team-alpha --as=team-alpha-lead  # yes
+#   kubectl auth can-i delete namespaces --as=team-alpha-lead                  # no
+#   kubectl auth can-i get pods -n team-beta --as=team-alpha-lead              # no
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-alpha
+  labels:
+    team: alpha
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-beta
+  labels:
+    team: beta
+
+---
+# team-alpha gets full admin rights in their namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: team-alpha-admin
+  namespace: team-alpha         # scoped to team-alpha only
+subjects:
+  - kind: User
+    name: team-alpha-lead
+    apiGroup: rbac.authorization.k8s.io
+  - kind: Group
+    name: team-alpha            # any user in the "team-alpha" group
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: admin                   # built-in: full namespace admin, cannot delete namespace itself
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# team-beta gets full admin rights in their namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: team-beta-admin
+  namespace: team-beta
+subjects:
+  - kind: Group
+    name: team-beta
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# SRE team gets view-only access to ALL namespaces for on-call visibility
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sre-cluster-view
+subjects:
+  - kind: Group
+    name: sre-team
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: view                    # built-in: read-only, excludes Secrets
+  apiGroup: rbac.authorization.k8s.io
