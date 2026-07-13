@@ -1,0 +1,10 @@
+apiVersion: v2
+name: myapp
+description: A beginner-friendly example Helm chart for a web application
+type: application
+
+# Chart version — bump this every time you change the chart
+version: 0.1.0
+
+# Version of the app being packaged (informational only)
+appVersion: "1.0.0"

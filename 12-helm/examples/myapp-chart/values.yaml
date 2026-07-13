@@ -1,0 +1,42 @@
+# Default values for myapp.
+# Override any of these with:
+#   --set key=value          (command line)
+#   -f your-values.yaml      (values file)
+
+# Number of pod replicas to run
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: "1.25"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false               # set to true to create an Ingress resource
+  host: myapp.example.com
+  ingressClassName: nginx
+  tls: false                   # set to true + provide secretName for HTTPS
+  tlsSecretName: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 64Mi
+  limits:
+    cpu: 300m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+# Extra labels applied to all resources — useful for cost allocation, team ownership
+extraLabels: {}
+#  team: platform
+#  cost-center: engineering
