@@ -1,0 +1,24 @@
+# Liveness probe using HTTP GET.
+# nginx serves a 200 on / by default — probe passes.
+# To see a failure: exec into the pod and remove the index file,
+# making nginx return 403. After 3 failures the container restarts.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-http
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.25
+      ports:
+        - containerPort: 80
+      livenessProbe:
+        httpGet:
+          path: /              # endpoint to check
+          port: 80
+        initialDelaySeconds: 5   # wait 5s after start before first probe
+        periodSeconds: 10        # check every 10 seconds
+        timeoutSeconds: 3        # probe must respond within 3s
+        failureThreshold: 3      # 3 consecutive failures → restart
+        successThreshold: 1      # 1 success → healthy (required for liveness)

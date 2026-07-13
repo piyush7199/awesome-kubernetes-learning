@@ -1,0 +1,80 @@
+# TLS (HTTPS) Ingress example.
+#
+# Step 1: Create a self-signed certificate for local testing
+#   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#     -keyout tls.key -out tls.crt \
+#     -subj "/CN=myapp.example.com/O=myapp"
+#
+# Step 2: Store it as a Kubernetes Secret
+#   kubectl create secret tls myapp-tls-secret \
+#     --cert=tls.crt --key=tls.key
+#
+# Step 3: Apply this Ingress
+#   kubectl apply -f 03-tls-ingress.yaml
+#
+# Step 4: Test (use -k to skip certificate verification for self-signed)
+#   curl -k https://myapp.example.com
+#   curl -k https://myapp.example.com/api
+#
+# In production: use cert-manager to get a real Let's Encrypt certificate.
+# cert-manager watches Ingress resources and auto-provisions/renews certs.
+
+---
+# Simple backend for the demo
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tls-demo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tls-demo
+  template:
+    metadata:
+      labels:
+        app: tls-demo
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+          # Note: the Pod itself only speaks HTTP — TLS is handled by the Ingress Controller
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tls-demo-svc
+spec:
+  selector:
+    app: tls-demo
+  ports:
+    - port: 80
+      targetPort: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tls-ingress
+  annotations:
+    # Redirect all HTTP requests to HTTPS automatically
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - myapp.example.com      # must match the certificate's CN / SAN
+      secretName: myapp-tls-secret  # Secret with tls.crt and tls.key
+  rules:
+    - host: myapp.example.com
+      http:                      # even though traffic arrives as HTTPS, rules are under http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tls-demo-svc
+                port:
+                  number: 80

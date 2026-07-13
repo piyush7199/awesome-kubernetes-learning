@@ -1,0 +1,26 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Release name:  {{ .Release.Name }}
+Namespace:     {{ .Release.Namespace }}
+Chart version: {{ .Chart.Version }}
+App version:   {{ .Chart.AppVersion }}
+
+{{- if .Values.ingress.enabled }}
+Your app is accessible at: http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }}
+{{- else if eq .Values.service.type "NodePort" }}
+Get the NodePort:
+  kubectl get svc {{ include "myapp.fullname" . }} -o jsonpath='{.spec.ports[0].nodePort}'
+{{- else }}
+Access via port-forward:
+  kubectl port-forward svc/{{ include "myapp.fullname" . }} 8080:{{ .Values.service.port }}
+  Then open: http://localhost:8080
+{{- end }}
+
+To see all resources:
+  kubectl get all -l app.kubernetes.io/instance={{ .Release.Name }}
+
+To upgrade:
+  helm upgrade {{ .Release.Name }} ./myapp-chart
+
+To uninstall:
+  helm uninstall {{ .Release.Name }}

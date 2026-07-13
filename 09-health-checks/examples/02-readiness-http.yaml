@@ -1,0 +1,43 @@
+# Readiness probe using HTTP GET.
+# The pod starts with readiness failing (returns 503) for the first 15 seconds,
+# simulating an app that takes time to warm up.
+# Watch: READY changes from 0/1 to 1/1 after ~15 seconds.
+#
+# kubectl get pod readiness-http -w
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readiness-http
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      ports:
+        - containerPort: 8080
+      # Simulate: app takes 15s to warm up, then becomes ready
+      # Serves 200 on /ready after 15s, 503 before that
+      command:
+        - sh
+        - -c
+        - |
+          START=$(date +%s)
+          while true; do
+            NOW=$(date +%s)
+            ELAPSED=$((NOW - START))
+            if [ $ELAPSED -ge 15 ]; then
+              # After 15s: serve 200 (ready)
+              echo -e "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nready" | nc -l -p 8080 -q 1
+            else
+              # Before 15s: serve 503 (not ready)
+              echo -e "HTTP/1.1 503 Service Unavailable\r\nContent-Length: 9\r\n\r\nnot ready" | nc -l -p 8080 -q 1
+            fi
+          done
+      readinessProbe:
+        httpGet:
+          path: /ready
+          port: 8080
+        initialDelaySeconds: 0
+        periodSeconds: 5
+        failureThreshold: 3
+        successThreshold: 1      # for readiness: can set >1 to require sustained health

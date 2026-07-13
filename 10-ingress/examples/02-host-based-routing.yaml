@@ -1,0 +1,163 @@
+# Host-based routing: different hostnames go to different services.
+#
+# Setup (Minikube):
+#   minikube addons enable ingress
+#   kubectl apply -f 02-host-based-routing.yaml
+#
+#   MINIKUBE_IP=$(minikube ip)
+#   echo "$MINIKUBE_IP app.example.com"     | sudo tee -a /etc/hosts
+#   echo "$MINIKUBE_IP api.example.com"     | sudo tee -a /etc/hosts
+#   echo "$MINIKUBE_IP admin.example.com"   | sudo tee -a /etc/hosts
+#
+# Then test:
+#   curl http://app.example.com
+#   curl http://api.example.com
+#   curl http://admin.example.com
+
+---
+# App frontend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-frontend
+  template:
+    metadata:
+      labels:
+        app: app-frontend
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          command:
+            - sh
+            - -c
+            - |
+              echo "server { listen 80; location / { return 200 'Welcome to the App!\n'; } }" \
+                > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-frontend-svc
+spec:
+  selector:
+    app: app-frontend
+  ports:
+    - port: 80
+
+---
+# API service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-server
+  template:
+    metadata:
+      labels:
+        app: api-server
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          command:
+            - sh
+            - -c
+            - |
+              echo "server { listen 80; location / { return 200 '{\"status\":\"ok\"}\n'; } }" \
+                > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-server-svc
+spec:
+  selector:
+    app: api-server
+  ports:
+    - port: 80
+
+---
+# Admin panel
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-panel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin-panel
+  template:
+    metadata:
+      labels:
+        app: admin-panel
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          command:
+            - sh
+            - -c
+            - |
+              echo "server { listen 80; location / { return 200 'Admin Panel\n'; } }" \
+                > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-panel-svc
+spec:
+  selector:
+    app: admin-panel
+  ports:
+    - port: 80
+
+---
+# One Ingress resource, three rules — one per hostname
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: host-based-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: app.example.com       # route traffic for this hostname
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-frontend-svc
+                port:
+                  number: 80
+    - host: api.example.com       # separate hostname → separate service
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-server-svc
+                port:
+                  number: 80
+    - host: admin.example.com     # admin on its own hostname
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-panel-svc
+                port:
+                  number: 80

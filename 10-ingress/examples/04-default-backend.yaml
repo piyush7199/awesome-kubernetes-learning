@@ -1,0 +1,106 @@
+# Ingress with a default backend (catch-all for unmatched requests).
+#
+# If a request arrives that doesn't match any rule or host,
+# it is served by the defaultBackend instead of returning a 404.
+# Useful for: custom error pages, monitoring unmatched traffic.
+#
+# Apply:
+#   kubectl apply -f 04-default-backend.yaml
+
+---
+# The "catch-all" default backend — shows a friendly error page
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: default-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: default-backend
+  template:
+    metadata:
+      labels:
+        app: default-backend
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          command:
+            - sh
+            - -c
+            - |
+              echo "server { listen 80; location / { return 404 'Page not found\n'; } }" \
+                > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: default-backend-svc
+spec:
+  selector:
+    app: default-backend
+  ports:
+    - port: 80
+
+---
+# Known backend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: main-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: main-app
+  template:
+    metadata:
+      labels:
+        app: main-app
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          command:
+            - sh
+            - -c
+            - |
+              echo "server { listen 80; location / { return 200 'Main app\n'; } }" \
+                > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: main-app-svc
+spec:
+  selector:
+    app: main-app
+  ports:
+    - port: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-with-default-backend
+spec:
+  ingressClassName: nginx
+  # defaultBackend: serves any request not matched by rules below
+  defaultBackend:
+    service:
+      name: default-backend-svc
+      port:
+        number: 80
+  rules:
+    - host: myapp.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: main-app-svc
+                port:
+                  number: 80
+  # Requests for any OTHER hostname hit the defaultBackend

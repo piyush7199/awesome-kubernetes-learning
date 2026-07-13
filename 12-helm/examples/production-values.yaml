@@ -1,0 +1,33 @@
+# Production overrides for myapp-chart.
+# Use with: helm upgrade --install myapp ./myapp-chart -f production-values.yaml
+#
+# Only override what differs from the chart's values.yaml defaults.
+
+replicaCount: 3
+
+image:
+  tag: "1.25"   # pin a specific tag in production — never use "latest"
+
+ingress:
+  enabled: true
+  host: myapp.example.com
+  tls: true
+  tlsSecretName: myapp-tls
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60
+
+extraLabels:
+  environment: production
+  team: platform
