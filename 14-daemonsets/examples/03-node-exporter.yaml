@@ -1,0 +1,105 @@
+# Prometheus Node Exporter DaemonSet.
+# Exposes hardware and OS metrics from every node for Prometheus to scrape.
+# This is a real-world DaemonSet used in almost every production K8s cluster.
+#
+# Apply:
+#   kubectl apply -f 03-node-exporter.yaml
+#
+# Check metrics from a Pod:
+#   kubectl port-forward daemonset/node-exporter 9100:9100
+#   curl http://localhost:9100/metrics | head -30
+#
+# In production: Prometheus scrapes each node-exporter Pod on port 9100
+# to collect CPU, memory, disk, network, and filesystem metrics.
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: default
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+      annotations:
+        # Tells Prometheus to scrape this pod (used by Prometheus operator)
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      hostPID: true      # see all processes on the node (required for some metrics)
+      hostNetwork: true  # use node's network namespace — binds port 9100 on the node IP
+
+      # Toleration: also run on control-plane nodes so they're monitored too
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+
+      containers:
+        - name: node-exporter
+          image: prom/node-exporter:v1.7.0
+          args:
+            - --path.procfs=/host/proc   # read kernel stats from node's /proc
+            - --path.sysfs=/host/sys     # read hardware stats from node's /sys
+            - --path.rootfs=/host/root   # read filesystem stats from node's root
+            - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+)($|/)
+          ports:
+            - containerPort: 9100
+              name: metrics
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: root
+              mountPath: /host/root
+              mountPropagation: HostToContainer
+              readOnly: true
+
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc          # kernel process/stats filesystem
+        - name: sys
+          hostPath:
+            path: /sys           # hardware/driver stats
+        - name: root
+          hostPath:
+            path: /              # node's root filesystem (for disk usage metrics)
+
+---
+# Service to expose node-exporter for Prometheus scraping
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-exporter
+  labels:
+    app: node-exporter
+spec:
+  # ClusterIP type — Prometheus scrapes each pod individually via headless or pod IPs
+  selector:
+    app: node-exporter
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: 9100
