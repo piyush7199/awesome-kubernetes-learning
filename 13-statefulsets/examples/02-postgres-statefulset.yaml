@@ -1,0 +1,112 @@
+# PostgreSQL StatefulSet — single-node with persistent storage.
+# This is the minimal setup for running Postgres in Kubernetes.
+# For production: use a proper HA solution like CloudNativePG or Zalando Postgres Operator.
+#
+# Apply:
+#   kubectl apply -f 02-postgres-statefulset.yaml
+#
+# Connect:
+#   kubectl exec -it postgres-0 -- psql -U postgres
+#
+# Test persistence:
+#   kubectl exec -it postgres-0 -- psql -U postgres -c "CREATE TABLE test (id INT);"
+#   kubectl delete pod postgres-0
+#   kubectl wait --for=condition=Ready pod/postgres-0 --timeout=60s
+#   kubectl exec -it postgres-0 -- psql -U postgres -c "\dt"
+#   (table is still there — same PVC, same data)
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+type: Opaque
+stringData:
+  postgres-password: "supersecret"   # in production, use a proper secret manager
+
+---
+# Headless Service: gives postgres-0 its own DNS entry
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      name: postgres
+
+---
+# Regular Service: a stable endpoint for app clients that don't care which pod they hit
+# (For single-node: identical to headless in practice; useful when you scale to replicas)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-svc
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres       # matches the headless Service
+  replicas: 1                 # single-node for simplicity
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: postgres-password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata   # avoid mount point conflict
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
