@@ -1,0 +1,38 @@
+# Basic DaemonSet — one nginx Pod on every node.
+# Demonstrates: no replicas field, one Pod per node, automatic scheduling.
+#
+# Apply:
+#   kubectl apply -f 01-basic-daemonset.yaml
+#
+# Observe (on Minikube with 1 node):
+#   kubectl get daemonset node-monitor
+#   kubectl get pods -l app=node-monitor -o wide
+#   # DESIRED=1, CURRENT=1, READY=1 — one Pod on your one node
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-monitor
+  labels:
+    app: node-monitor
+spec:
+  selector:
+    matchLabels:
+      app: node-monitor
+  template:
+    metadata:
+      labels:
+        app: node-monitor
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m        # keep small — this runs on EVERY node
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

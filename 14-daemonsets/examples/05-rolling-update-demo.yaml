@@ -1,0 +1,57 @@
+# DaemonSet rolling update demonstration.
+# Starts with image v1 (nginx:1.24), then you upgrade to v2 (nginx:1.25).
+# Watch the rollout happen node by node.
+#
+# Apply:
+#   kubectl apply -f 05-rolling-update-demo.yaml
+#
+# Check the current image:
+#   kubectl get daemonset rolling-demo -o jsonpath='{.spec.template.spec.containers[0].image}'
+#
+# Trigger a rolling update:
+#   kubectl set image daemonset/rolling-demo nginx=nginx:1.25
+#
+# Watch the rollout:
+#   kubectl rollout status daemonset/rolling-demo
+#
+# Check rollout history:
+#   kubectl rollout history daemonset/rolling-demo
+#
+# Roll back:
+#   kubectl rollout undo daemonset/rolling-demo
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: rolling-demo
+spec:
+  selector:
+    matchLabels:
+      app: rolling-demo
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1   # only 1 node's Pod may be unavailable at a time during update
+  template:
+    metadata:
+      labels:
+        app: rolling-demo
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.24   # start with 1.24; we'll upgrade to 1.25
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

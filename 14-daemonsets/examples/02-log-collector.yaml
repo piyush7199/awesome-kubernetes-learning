@@ -1,0 +1,75 @@
+# Log collector DaemonSet — reads container logs from the node filesystem.
+# Simulates what Fluentd/Filebeat/Promtail do in production.
+# The key pattern: HostPath volumes to access node-local log directories.
+#
+# Apply:
+#   kubectl apply -f 02-log-collector.yaml
+#
+# Verify it's reading logs:
+#   kubectl logs -l app=log-collector
+#
+# See which node it's on:
+#   kubectl get pods -l app=log-collector -o wide
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: log-collector
+spec:
+  selector:
+    matchLabels:
+      app: log-collector
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1   # update 1 node at a time
+  template:
+    metadata:
+      labels:
+        app: log-collector
+    spec:
+      # ServiceAccount: in production you'd create one with log-shipping permissions
+      # serviceAccountName: log-collector-sa
+
+      containers:
+        - name: log-collector
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Log collector starting on node: ${NODE_NAME}"
+              echo "Tailing /var/log for demonstration..."
+              # In production: fluentd/filebeat would parse and ship these
+              tail -f /var/log/syslog 2>/dev/null || \
+              tail -f /var/log/messages 2>/dev/null || \
+              (echo "No syslog found — listing log files:" && ls /var/log/ && sleep 3600)
+          env:
+            # Downward API: inject the node name into the container
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName   # tells us which node we're on
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log          # node's /var/log visible inside container
+              readOnly: true               # log collector only reads, never writes
+            - name: containers-log
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+
+      # HostPath volumes: mount node filesystem directories
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log                 # actual path on the node's filesystem
+        - name: containers-log
+          hostPath:
+            path: /var/lib/docker/containers
