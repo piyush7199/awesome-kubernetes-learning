@@ -1,0 +1,71 @@
+# Basic StatefulSet — nginx to show stable names, per-pod PVCs, and headless DNS.
+# Deliberately uses nginx (not a real database) so you can focus on StatefulSet mechanics
+# without database setup complexity.
+#
+# Apply:
+#   kubectl apply -f 01-statefulset-basics.yaml
+#
+# Watch ordered startup:
+#   kubectl get pods -w
+#   (notice: web-0 created first, then web-1, then web-2)
+#
+# Check per-pod PVCs:
+#   kubectl get pvc
+#   (data-web-0, data-web-1, data-web-2 — one per pod)
+#
+# Test per-pod DNS (from inside the cluster):
+#   kubectl run test --image=busybox:1.36 --rm -it -- sh
+#   nslookup web-0.web.default.svc.cluster.local
+#   nslookup web-1.web.default.svc.cluster.local
+
+---
+# The Headless Service — REQUIRED for per-pod DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: web                # StatefulSet's serviceName MUST match this
+spec:
+  clusterIP: None          # "None" = headless — returns pod IPs directly from DNS
+  selector:
+    app: web
+  ports:
+    - port: 80
+      name: http
+
+---
+# The StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  serviceName: web         # must match the headless Service name above
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+            - name: data      # matches volumeClaimTemplates[0].metadata.name
+              mountPath: /usr/share/nginx/html
+
+  # VolumeClaimTemplates: creates one PVC per Pod
+  # Resulting PVC names: data-web-0, data-web-1, data-web-2
+  volumeClaimTemplates:
+    - metadata:
+        name: data            # combined with pod name → data-web-0, data-web-1, ...
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 100Mi   # small for demo purposes

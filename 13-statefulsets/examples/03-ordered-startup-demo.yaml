@@ -1,0 +1,62 @@
+# Ordered startup demo: 3 replicas that each take a few seconds to become Ready.
+# Watch startup order in real time:
+#   kubectl get pods -w
+#
+# You'll see:
+#   demo-0   Pending → Running → Ready 1/1
+#   demo-1   <nothing until demo-0 is 1/1>
+#   demo-1   Pending → Running → Ready 1/1
+#   demo-2   <nothing until demo-1 is 1/1>
+#   demo-2   Pending → Running → Ready 1/1
+#
+# Then scale down to watch reverse termination:
+#   kubectl scale statefulset ordered-demo --replicas=1
+# You'll see demo-2 terminate first, then demo-1.
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ordered-demo
+spec:
+  clusterIP: None
+  selector:
+    app: ordered-demo
+  ports:
+    - port: 80
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ordered-demo
+spec:
+  serviceName: ordered-demo
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ordered-demo
+  template:
+    metadata:
+      labels:
+        app: ordered-demo
+    spec:
+      containers:
+        - name: app
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              # Simulate slow startup: write a ready file after 10 seconds
+              POD_NAME=${HOSTNAME}
+              echo "$POD_NAME starting up..."
+              sleep 10
+              touch /tmp/ready
+              echo "$POD_NAME is ready"
+              sleep 3600
+          readinessProbe:
+            exec:
+              command: ["test", "-f", "/tmp/ready"]
+            initialDelaySeconds: 0
+            periodSeconds: 3

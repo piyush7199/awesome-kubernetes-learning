@@ -1,0 +1,57 @@
+# Parallel pod management policy: start all pods simultaneously (no ordering).
+# Useful for independent nodes (caches, read replicas) where order doesn't matter
+# and faster startup is more important than ordering guarantees.
+#
+# Compare startup time with 03-ordered-startup-demo.yaml:
+#   kubectl apply -f 05-parallel-management.yaml
+#   kubectl get pods -w
+# All 3 pods start at the same time (vs sequential in the ordered demo).
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache
+spec:
+  clusterIP: None
+  selector:
+    app: cache
+  ports:
+    - port: 6379
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cache
+spec:
+  serviceName: cache
+  replicas: 3
+  podManagementPolicy: Parallel   # all pods start/stop simultaneously
+  selector:
+    matchLabels:
+      app: cache
+  template:
+    metadata:
+      labels:
+        app: cache
+    spec:
+      containers:
+        - name: redis
+          image: redis:7
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+  updateStrategy:
+    type: RollingUpdate   # still updates one at a time even with Parallel management
